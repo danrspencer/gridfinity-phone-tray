@@ -150,6 +150,7 @@ module wedge(length, width, height) {
 function wedge_angle() = atan2(cutout_height, wedge_length());
 
 difference() {
+    union() {
     gridfinityInit(gridx, gridy, bin_height(), 0, sl=style_lip()) {
         cut_move(x=0, y=0, w=gridx, h=gridy) {
             allowance = 0.1;
@@ -176,6 +177,8 @@ difference() {
             }   
         }
     }
+    gridfinityBase(gridx, gridy, l_grid, 0, 0, hole_options, only_corners=only_corners);
+    }
     translate([
         0,
         0,
@@ -183,8 +186,10 @@ difference() {
     ])
     union() {
         // Circular cutout for charger
-        // translate([0, 0, -charger_cutout_depth_with_clearance() - chamfer_height])
-        cylinder(h = charger_cutout_depth_with_clearance() + 0.1, d = charger_cutout_diameter_with_clearance(), center = false);
+        cylinder(h = charger_cutout_depth_with_clearance() + 0.01, d = charger_cutout_diameter_with_clearance(), center = false);
+        // Cylinder cutout through to the bottom for pushing the charger out
+        translate([0, 0, -charger_cutout_depth_with_clearance()])
+        cylinder(h = bin_height(), d = 10, center = false);
         // Rectangular cutout for charging cable
         translate([
             0, 
@@ -207,4 +212,3 @@ difference() {
     }
 }
 
-gridfinityBase(gridx, gridy, l_grid, 0, 0, hole_options, only_corners=only_corners);
