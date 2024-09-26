@@ -40,13 +40,15 @@ function wedge_length() = (phone_length_with_clearance() - charger_tray_width)/2
 
 /* [Cable Cutout] */
 // Width of the cable cutout
-cable_cutout_width = 15;
+cable_cutout_width = 15; //.1
 // Height of the cable cutout
-cable_cutout_height = 8;
+cable_cutout_height = 8; //.1
 // Length of the cable cutout
-cable_cutout_length = 30; // Renamed from cable_cutout_depth
+cable_cutout_length = 30; //.1
 // Offset from the bottom of the charger cutout
-cable_cutout_bottom_offset = 1.0; // New parameter
+cable_cutout_bottom_offset = 1.0; //.1
+// Radius for the rounded corners of the cable cutout
+cable_cutout_corner_radius = 5; //.5
 
 function cable_cutout_top_offset() = chamfer_height - charger_cutout_clearance*2 + cable_cutout_top_offset;
 
@@ -149,11 +151,36 @@ module wedge(length, width, height) {
 // Calculate the wedge angle correctly
 function wedge_angle() = atan2(cutout_height, wedge_length());
 
+module rounded_cube(size, radius) {
+    radius = min(radius, size.y/2, size.z/2);
+    if (radius <= 0) {
+        cube(size);
+    } else {
+        hull() {
+            translate([0, radius, radius])
+            rotate([0, 90, 0])
+            cylinder(r=radius, h=size.x);
+            
+            translate([0, size.y - radius, radius])
+            rotate([0, 90, 0])
+            cylinder(r=radius, h=size.x);
+            
+            translate([0, radius, size.z - radius])
+            rotate([0, 90, 0])
+            cylinder(r=radius, h=size.x);
+            
+            translate([0, size.y - radius, size.z - radius])
+            rotate([0, 90, 0])
+            cylinder(r=radius, h=size.x);
+        }
+    }
+}
+
 difference() {
     union() {
     gridfinityInit(gridx, gridy, bin_height(), 0, sl=style_lip()) {
         cut_move(x=0, y=0, w=gridx, h=gridy) {
-            allowance = 0.1;
+            allowance = 0.01;
             difference() {
                 union() {
                     // Tapered iPhone shape (existing)
@@ -186,17 +213,32 @@ difference() {
     ])
     union() {
         // Circular cutout for charger
-        cylinder(h = charger_cutout_depth_with_clearance() + 0.01, d = charger_cutout_diameter_with_clearance(), center = false);
+        union() {
+            cylinder(h = charger_cutout_depth_with_clearance() + 0.01, d = charger_cutout_diameter_with_clearance(), center = false);
+            
+            // Add chamfer at the top of the circular cutout
+            translate([0, 0, charger_cutout_depth_with_clearance() - 1])  // Position the chamfer 1mm below the top
+            cylinder(h = 1, d1 = charger_cutout_diameter_with_clearance(), d2 = charger_cutout_diameter_with_clearance() + 1, center = false);  // 1mm high chamfer, expanding by 2mm
+        }
+        
         // Cylinder cutout through to the bottom for pushing the charger out
-        translate([0, 0, -charger_cutout_depth_with_clearance()])
-        cylinder(h = bin_height(), d = 10, center = false);
+        translate([0, 0, -bin_height()+0.01])
+        union() {
+            cylinder(h = bin_height(), d = 10, center = false);
+            
+            // Add chamfer at the top of the cylinder
+            translate([0, 0, bin_height() - 1])  // Position the chamfer 1mm below the top
+            cylinder(h = 1, d1 = 10, d2 = 12, center = false);  // 1mm high chamfer, expanding from 10mm to 12mm diameter
+        }
+        
         // Rectangular cutout for charging cable
         translate([
             0, 
             -cable_cutout_width/2, 
             cable_cutout_bottom_offset
         ])
-        cube([cable_cutout_length + charger_cutout_diameter_with_clearance()/2, cable_cutout_width, cable_cutout_height], center=false);
+        rounded_cube([cable_cutout_length + charger_cutout_diameter_with_clearance()/2, cable_cutout_width, cable_cutout_height], cable_cutout_corner_radius);
+        
         // Angled cutout extending to the edge of the tray
         translate([
             cable_cutout_length - 1 + charger_cutout_diameter_with_clearance()/2,
@@ -204,11 +246,11 @@ difference() {
             cable_cutout_bottom_offset
         ])
         rotate([0, wedge_angle(), 0])
-        cube([
+        rounded_cube([
             (gridx/2) * 42 - (charger_cutout_diameter_with_clearance()/2 + cable_cutout_length) + 5,
             cable_cutout_width,
             cable_cutout_height
-        ]);
+        ], cable_cutout_corner_radius);
     }
 }
 
