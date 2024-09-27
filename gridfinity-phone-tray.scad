@@ -136,12 +136,13 @@ function bin_height() = height(gridz, gridz_define, style_lip(), enable_zsnap);
 
 // Module to create tapered iPhone shape
 module cutout_chamfered_edge(length, width, height, curve, smoothness, angle) {
+    bottom_scale = 1;
     top_scale = 1 + 2 * tan(angle) * height / sqrt(length*length + width*width);
     
     scale([top_scale, top_scale, 1])
     translate([0, 0, height])
     mirror([0, 0, 1])
-    linear_extrude(height=height, scale=top_scale/top_scale)
+    linear_extrude(height=height, scale=bottom_scale/top_scale)
     phone_2d_shape(length, width, curve, smoothness);
 }
 
