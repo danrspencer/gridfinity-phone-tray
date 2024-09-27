@@ -1,4 +1,16 @@
-include <gridfinity-rebuilt-openscad/gridfinity-rebuilt-utility.scad>
+include <submodules/gridfinity-rebuilt-openscad/gridfinity-rebuilt-utility.scad>
+
+include <components/phone.scad>
+
+// TODOs
+// [X] Update the center cutout to be configurable and bigger [X]
+// [X] Add in a configurable wire thickness
+// [-] Put in a cutout all the way down to the bottom of the wire thickness up to the edge of the tray
+// [X] Updated the wire cutout to just be for the wire attachment point
+// [-] Add cable management to the bottom of the tray so the cable can exit in any direction
+// [-] Update the phone chamfer to work on children and use to chamfer wire cutout in charger tray
+// [-] In the charger demo add some of the cable management cutouts so it can be tested
+// [-] Get the height to be automatic based on the phone and charger sizes
 
 // ===== PHONE PARAMETERS ===== //
 
@@ -10,6 +22,7 @@ test_phone_cutout = false;
 phone_preset = 1; // [0: Custom, 1: iPhone 16 Pro Max, 2: iPhone 16 Pro !UNTESTED!, 3:iPhone 16 Plus !UNTESTED!, 4:iPhone 16 !UNTESTED!]
 
 function phone_presets() = 
+    // Length, Width, Corner Curve, Corner Smoothness
     phone_preset == 1 ? [163.0, 77.6, 34.0, 6] : // iPhone 16 Pro Max
     phone_preset == 2 ? [149.6, 71.5, 34.0, 6] : // iPhone 16 Pro
     phone_preset == 3 ? [160.9, 77.8, 34.0, 6] : // iPhone 16 Plus
@@ -48,29 +61,35 @@ test_charger_cutout = false;
 charger_preset = 1; // [0: Custom, 1: Apple MagSafe Charger !UNTESTED!, 2: Belkin MagSafe Wireless Charger Pad, 3: Mous Mage MagSafe Charger !UNTESTED!]
 
 function charger_presets() = 
-    // Diameter, Depth, Cable Width, Cable Height, Cable Straight Length
-    charger_preset == 1 ? [55.5, 4.37, 5, 10.7] : // Apple MagSafe Charger
-    charger_preset == 2 ? [58.5, 11.7, 6.5, 11] : // Belkin MagSafe Wireless Charger Pad
-    charger_preset == 3 ? [56.8, 5.5, 6.5, 12] : // Mous MagSafe Charger
+    // Diameter, Depth, Cable Width, Plug Width, Cable Relief Diameter, Cable Relief Length
+    charger_preset == 1 ? [55.5, 4.37, 2.75, 5, 2.75, 5] : // Apple MagSafe Charger
+    charger_preset == 2 ? [58.5, 11.7, 4.4, 6.5, 7, 20] : // Belkin MagSafe Wireless Charger Pad
+    charger_preset == 3 ? [56.8, 5.5, 2.75, 6.5, 3, 5] : // Mous MagSafe Charger
     [0, 0, 0, 0, 0]; // Custom
 
 // Diameter of the circular cutout in the charger tray
 custom_charger_cutout_diameter = 55.5;
 // Depth of the circular cutout in the charger tray
 custom_charger_cutout_depth = 4.37;
+// Cable Diameter
+custom_cable_diameter = 3;
+// Cable Plug Width
+custom_cable_plug_width = 5;
 // Width of the cable cutout
-custom_cable_cutout_width = 5; //.1
+custom_cable_relief_diameter = 5; //.1
 // Height of the cable cutout
-custom_cable_cutout_height = 11; //.1
+custom_cable_relief_length = 11; //.1
 
 function charger_cutout_diameter() = (charger_preset == 0 ? custom_charger_cutout_diameter : charger_presets()[0])  + 2*charger_cutout_clearance;
 function charger_cutout_depth() = (charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1]) + charger_cutout_clearance;
 
-function cable_cutout_width() = (charger_preset == 0 ? custom_cable_cutout_width : charger_presets()[2]);
-function cable_cutout_height() = (charger_preset == 0 ? custom_cable_cutout_height : charger_presets()[3]);
-function cable_cutout_top_offset() = charger_cutout_depth() - cable_cutout_height() - cable_cutout_top_offset;
-function cable_cutout_angle() = cable_cutout_angle > 0 ? cable_cutout_angle : atan2(phone_cutout_height, wedge_length());
+function cable_diameter() = (charger_preset == 0 ? custom_cable_diameter : charger_presets()[2]);
+function cable_diameter_with_clearance() = cable_diameter() + cable_clearance;
+function cable_plug_width() = (charger_preset == 0 ? custom_cable_plug_width : charger_presets()[3]) + cable_plug_clearance;
+function cable_relief_diameter() = (charger_preset == 0 ? custom_cable_relief_diameter : charger_presets()[4]);
+function cable_relief_length() = (charger_preset == 0 ? custom_cable_relief_length : charger_presets()[5]);
 
+function cable_cutout_top_offset() = charger_cutout_depth() - cable_relief_length();
 function wedge_length() = (phone_length() - charger_tray_width)/2;
 
 /* [Charger Tray] */
@@ -78,16 +97,10 @@ function wedge_length() = (phone_length() - charger_tray_width)/2;
 charger_tray_width = 70.0;
 // Clearance around the charger cutout
 charger_cutout_clearance = 0.7;
-// Diameter of the central hole in the charger tray
-charger_tray_central_hole_diameter = 15;
-// How far to go back straight before angling down - this is likely not needed if printing the cutout on its side as recommended
-cable_cutout_straight_length = 0; //.1
-// Offset from the top of the charger cutout
-cable_cutout_top_offset = 1.5; //.5
-// Radius for the rounded corners of the cable cutout
-cable_cutout_corner_radius = 2.5; //.5
-// Cutout angle (0 to calculate automatically)
-cable_cutout_angle = 4.5; //.5
+// Cable clearance
+cable_clearance = 0.5;
+// Cable plug clearance
+cable_plug_clearance = 0.5;
 
 // ===== GRIDFINITY PARAMETERS ===== //
 
@@ -144,25 +157,6 @@ module cutout_chamfered_edge(length, width, height, curve, smoothness, angle) {
     mirror([0, 0, 1])
     linear_extrude(height=height, scale=bottom_scale/top_scale)
     phone_2d_shape(length, width, curve, smoothness);
-}
-
-// Module to create 2D iPhone shape
-module phone_2d_shape(length, width, curve, smoothness) {
-    hull() {
-        for (x = [-1, 1], y = [-1, 1]) {
-            translate([x * (length/2 - curve), y * (width/2 - curve)])
-            superellipse(curve, curve, smoothness);
-        }
-    }
-}
-
-// Module to create superellipse shape
-module superellipse(a, b, n) {
-    points = [for (t = [0:5:359]) [
-        a * pow(abs(cos(t)), 2/n) * sign(cos(t)),
-        b * pow(abs(sin(t)), 2/n) * sign(sin(t))
-    ]];
-    polygon(points);
 }
 
 // Modified charger tray module
@@ -258,32 +252,32 @@ if (test_phone_cutout) {
             // Cylinder cutout through to the top for pushing the charger out
             translate([0, 0, -bin_height()+0.01])
             union() {
-                cylinder(h = bin_height(), d = charger_tray_central_hole_diameter, center = false);
+                cylinder(h = bin_height(), d = cable_plug_width(), center = false);
                 
                 // Add chamfer at the top of the cylinder
                 translate([0, 0, bin_height() - 1])  // Position the chamfer 1mm below the top
-                cylinder(h = 1, d1 = 10, d2 = charger_tray_central_hole_diameter+2, center = false);  // 1mm high chamfer, expanding from 10mm to 12mm diameter
+                cylinder(h = 1, d1 = 10, d2 = cable_plug_width()+2, center = false);  // 1mm high chamfer, expanding from 10mm to 12mm diameter
             }
             
             // Rectangular cutout for charging cable
             translate([
                 0, 
-                -cable_cutout_width()/2, 
+                -cable_relief_diameter()/2, 
                 cable_cutout_top_offset()
             ])
-            rounded_cube([cable_cutout_straight_length + charger_cutout_diameter()/2, cable_cutout_width(), cable_cutout_height], cable_cutout_corner_radius);
+            rounded_cube([cable_relief_length() + charger_cutout_diameter()/2, cable_relief_diameter(), cable_relief_length], cable_cutout_corner_radius);
             
             // Angled cutout extending to the edge of the tray
             translate([
-                cable_cutout_straight_length - 2 + charger_cutout_diameter()/2,
-                -cable_cutout_width()/2,
+                cable_relief_length() - 2 + charger_cutout_diameter()/2,
+                -cable_relief_diameter()/2,
                 cable_cutout_top_offset()
             ])
             rotate([0, cable_cutout_angle(), 0])
             rounded_cube([
-                (gridx/2) * 42 - (charger_cutout_diameter()/2 + cable_cutout_straight_length) + 5,
-                cable_cutout_width(),
-                cable_cutout_height
+                (gridx/2) * 42 - (charger_cutout_diameter()/2 + cable_relief_length()) + 5,
+                cable_relief_diameter(),
+                cable_relief_length
             ], cable_cutout_corner_radius);
         }
     }
@@ -344,33 +338,33 @@ if (test_phone_cutout) {
             // Cylinder cutout through to the top for pushing the charger out
             translate([0, 0, -bin_height()+0.01])
             union() {
-                cylinder(h = bin_height(), d = charger_tray_central_hole_diameter, center = false);
+                cylinder(h = bin_height(), d = cable_plug_width(), center = false);
                 
                 // Add chamfer at the top of the cylinder
                 translate([0, 0, bin_height() - 1])  // Position the chamfer 1mm below the top
-                cylinder(h = 1, d1 = charger_tray_central_hole_diameter, d2 = charger_tray_central_hole_diameter+2, center = false);  // 1mm high chamfer, expanding from 10mm to 12mm diameter
+                cylinder(h = 1, d1 = cable_plug_width(), d2 = cable_plug_width()+2, center = false);  // 1mm high chamfer, expanding from 10mm to 12mm diameter
             }
             
             // Rectangular cutout for charging cable
             translate([
                 0, 
-                -cable_cutout_width()/2, 
+                -cable_diameter()/2, 
                 -bin_height()+0.1
             ])
-            cube([cable_cutout_straight_length + charger_cutout_diameter()/2, cable_cutout_width(), bin_height()]);
+            cube([cable_relief_length() + charger_cutout_diameter()/2, cable_diameter(), bin_height()]);
             
             // Angled cutout extending to the edge of the tray
-            translate([
-                cable_cutout_straight_length - 2 + charger_cutout_diameter()/2,
-                -cable_cutout_width()/2,
-                cable_cutout_top_offset()
-            ])
-            rotate([0, cable_cutout_angle(), 0])
-            rounded_cube([
-                (gridx/2) * 42 - (charger_cutout_diameter()/2 + cable_cutout_straight_length) + 5,
-                cable_cutout_width(),
-                cable_cutout_height()
-            ], cable_cutout_corner_radius);
+            translate([-1+charger_cutout_diameter()/2,0,0])
+            union() {
+                difference() {
+                    rotate([0, 90, 0])
+                    cylinder(d=cable_relief_diameter(), h=cable_relief_length());
+                    translate([-0.01, -cable_relief_diameter()/2, -cable_relief_diameter()/2])
+                    cube([cable_relief_length(), cable_relief_diameter(),  cable_relief_diameter()/2]);
+                }
+                translate([cable_relief_length(), 0, 0])
+                sphere(d=cable_relief_diameter());
+            }
         }
     }
 }
