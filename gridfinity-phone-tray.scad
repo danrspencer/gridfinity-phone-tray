@@ -217,6 +217,6 @@ if (test_phone_cutout) {
             }
         }
         translate([0, 0, bin_height()+4.75-phone_chamfer_height-charger_height()+0.01])
-        charger_cutout(charger_height(), charger_diameter(), cable_plug_width(), bin_height(), cable_diameter(), cable_relief_length(), cable_relief_diameter());
+        charger_cutout(charger_height(), charger_diameter(), cable_plug_width(), bin_height()-4.75-phone_chamfer_height, cable_diameter(), cable_relief_length(), cable_relief_diameter());
     }
 }
