@@ -3,17 +3,17 @@ include <submodules/gridfinity-rebuilt-openscad/gridfinity-rebuilt-utility.scad>
 include <components/charger-cutout.scad>
 include <components/charger-tray.scad>
 include <components/phone.scad>
-include <components/utils.scad>
 
 // TODOs
 // [X] Update the center cutout to be configurable and bigger [X]
 // [X] Add in a configurable wire thickness
-// [-] Put in a cutout all the way down to the bottom of the wire thickness up to the edge of the tray
+// [X] Put in a cutout all the way down to the bottom of the wire thickness up to the edge of the tray
 // [X] Updated the wire cutout to just be for the wire attachment point
 // [-] Add cable management to the bottom of the tray so the cable can exit in any direction
-// [-] Update the phone chamfer to work on children and use to chamfer wire cutout in charger tray
+// [X] Update the phone chamfer to work on children and use to chamfer wire cutout in charger tray
 // [-] In the charger demo add some of the cable management cutouts so it can be tested
 // [-] Get the height to be automatic based on the phone and charger sizes
+// [-] Ensure cable manage works with different sized grids (especially odd numbers)
 
 // ===== PHONE PARAMETERS ===== //
 
@@ -166,21 +166,17 @@ module cutout_chamfered_edge(length, width, height, curve, smoothness, angle) {
 
 if (test_phone_cutout) {
     difference() {
-        translate([0, 0, phone_chamfer_height
-    /2])
-        cube([phone_length()+5, phone_width()+5, phone_chamfer_height
-    -0.01], center=true);
-        cutout_chamfered_edge(phone_length(), 
-            phone_width(), 
-            phone_chamfer_height
-         + 0.01, 
-            phone_corner_curve(), 
-            phone_corner_smoothness(),
-            phone_chamfer_angle
-        );
+        translate([0, 0, phone_chamfer_height/2])
+        cube([phone_length()+5, phone_width()+5, phone_chamfer_height-0.01], center=true);
+        linear_extrude(height = phone_chamfer_height, scale = 1 + 2 * tan(phone_chamfer_angle) * (phone_chamfer_height / 100)) 
+        phone_2d_shape(phone_length(), 
+                            phone_width(), 
+                            phone_corner_curve(), 
+                            phone_corner_smoothness());
+                            translate([0, 0, -phone_cutout_height]);
     }
 } else if (test_charger_cutout) {
-    
+    // TODO
 } else {
     difference() {
         union() {
