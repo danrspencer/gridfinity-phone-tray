@@ -4,17 +4,6 @@ include <components/charger-cutout.scad>
 include <components/charger-tray.scad>
 include <components/phone.scad>
 
-// TODOs
-// [X] Update the center cutout to be configurable and bigger [X]
-// [X] Add in a configurable wire thickness
-// [X] Put in a cutout all the way down to the bottom of the wire thickness up to the edge of the tray
-// [X] Updated the wire cutout to just be for the wire attachment point
-// [-] Add cable management to the bottom of the tray so the cable can exit in any direction
-// [X] Update the phone chamfer to work on children and use to chamfer wire cutout in charger tray
-// [-] In the charger demo add some of the cable management cutouts so it can be tested
-// [-] Get the height to be automatic based on the phone and charger sizes
-// [-] Ensure cable manage works with different sized grids (especially odd numbers)
-
 // ===== PHONE PARAMETERS ===== //
 
 /* [Phone Size] */
@@ -61,13 +50,13 @@ function phone_corner_smoothness() = (phone_preset == 0 ? custom_phone_corner_sm
 // Just the charger cutout so the dimensions can be tested
 test_charger_cutout = false;
 // Known charger dimensions. It is recommended to do a test print first if using untested or custom charger dimensions
-charger_preset = 1; // [0: Custom, 1: Apple MagSafe Charger !UNTESTED!, 2: Belkin MagSafe Wireless Charger Pad, 3: Mous Mage MagSafe Charger !UNTESTED!]
+charger_preset = 1; // [0: Custom, 1: Apple MagSafe Charger !UNTESTED!, 2: Belkin MagSafe Wireless Charger Pad !UNTESTED!, 3: Mous Mage MagSafe Charger]
 
 function charger_presets() = 
     // Diameter, Depth, Cable Width, Plug Width, Cable Relief Diameter, Cable Relief Length
-    charger_preset == 1 ? [55.5, 4.37, 2.75, 5, 2.75, 5] : // Apple MagSafe Charger
-    charger_preset == 2 ? [58.5, 11.7, 4.4, 6.5, 7, 20] : // Belkin MagSafe Wireless Charger Pad
-    charger_preset == 3 ? [56.8, 5.5, 2.75, 6.5, 3, 5] : // Mous MagSafe Charger
+    charger_preset == 1 ? [55.5, 4.37, 2.85, 10.15, 2.85, 5] : // Apple MagSafe Charger
+    charger_preset == 2 ? [58.5, 11.7, 4.4, 12, 7, 20] : // Belkin MagSafe Wireless Charger Pad
+    charger_preset == 3 ? [56.8, 7.5, 2.75, 11.5, 3.8, 10] : // Mous MagSafe Charger
     [0, 0, 0, 0, 0]; // Custom
 
 // Diameter of the circular cutout in the charger tray
@@ -87,21 +76,22 @@ function charger_diameter() = (charger_preset == 0 ? custom_charger_diameter : c
 function charger_height() = (charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1]) + charger_cutout_clearance;
 
 function cable_diameter() = (charger_preset == 0 ? custom_cable_diameter : charger_presets()[2]);
-function cable_diameter_with_clearance() = cable_diameter() + cable_clearance;
 function cable_plug_width() = (charger_preset == 0 ? custom_cable_plug_width : charger_presets()[3]) + cable_plug_clearance;
 function cable_relief_diameter() = (charger_preset == 0 ? custom_cable_relief_diameter : charger_presets()[4]);
 function cable_relief_length() = (charger_preset == 0 ? custom_cable_relief_length : charger_presets()[5]);
+function cable_cutout_height() = bin_height()+4.75-phone_chamfer_height+0.02-charger_height();
 
-function cable_cutout_top_offset() = charger_height() - cable_relief_length();
 function wedge_length() = (phone_length() - charger_tray_size)/2;
 
 /* [Charger Tray] */
 // Size of the charger tray extrusion
 charger_tray_size = 70.0;
 // Clearance around the charger cutout
-charger_cutout_clearance = 0.7;
-// Cable clearance
-cable_clearance = 0.5;
+charger_cutout_clearance = 0.8;
+// Cable cutout clearance
+cable_cutout_clearance = 1;
+// Cable management clearance
+cable_management_clearance = 0.3;
 // Cable plug clearance
 cable_plug_clearance = 0.5;
 
@@ -112,8 +102,8 @@ cable_plug_clearance = 0.5;
 gridx = 4; //.5
 // number of bases along y-axis
 gridy = 2; //.5
-// bin height. See bin height information and "gridz_define" below.
-gridz = 2; //.1
+// bin height (leave as 0 to auto calculate based on charger size) - see bin height information and "gridz_define" below
+gridz = 0; //.1
 
 /* [Gridfinity Height Settings] */
 // determine what the variable "gridz" applies to based on your use case
@@ -146,7 +136,12 @@ $fa = 8;
 $fs = 0.25; // .01
 
 function style_lip() = 2;
-function bin_height() = height(gridz, gridz_define, style_lip(), enable_zsnap);
+function auto_gridz() = ceil((charger_height()+phone_chamfer_height+2)/7);
+function bin_height() = gridz > 0 ? height(gridz, gridz_define, style_lip(), enable_zsnap) : height(auto_gridz(), 0, style_lip(), false);
+function base_height() = 4.75;
+function tray_length() = gridx * 42;
+
+// echo(bin_height());
 
 // ===== MODULES ===== //
 
@@ -164,6 +159,7 @@ module cutout_chamfered_edge(length, width, height, curve, smoothness, angle) {
     phone_2d_shape(length, width, curve, smoothness);
 }
 
+color("#FFFFFF")
 if (test_phone_cutout) {
     difference() {
         translate([0, 0, phone_chamfer_height/2])
@@ -176,7 +172,30 @@ if (test_phone_cutout) {
                             translate([0, 0, -phone_cutout_height]);
     }
 } else if (test_charger_cutout) {
-    // TODO
+    fake_bin_height = charger_height();
+    fake_base_height = 1;
+    difference() {
+        translate([0, 0, (fake_bin_height + fake_base_height)/2])
+        union() {
+            cylinder(h = fake_bin_height + fake_base_height, d = charger_diameter() + 3, center = true, $fn=50);
+            translate([(charger_diameter() + 2)/2, 0, 0])
+            cube([cable_relief_length()+5, cable_relief_diameter()+3, fake_bin_height + fake_base_height], center = true);
+        }
+        translate([0,0,0.01])
+        charger_cutout(
+            bin_height = fake_bin_height,
+            base_height = fake_base_height,
+            tray_length = tray_length(),
+            charger_height = charger_height(), 
+            charger_diameter = charger_diameter(), 
+            plug_width = cable_plug_width(), 
+            cable_diameter = cable_diameter(), 
+            cable_cutout_clearance = cable_cutout_clearance,
+            cable_management_clearance = cable_management_clearance,
+            cable_relief_length = cable_relief_length(), 
+            cable_relief_diameter = cable_relief_diameter()
+        );
+    }
 } else {
     difference() {
         union() {
@@ -212,7 +231,20 @@ if (test_phone_cutout) {
                 gridfinityBase(gridx, gridy, l_grid, 0, 0, hole_options, only_corners=only_corners);
             }
         }
-        translate([0, 0, bin_height()+4.75-phone_chamfer_height-charger_height()+0.01])
-        charger_cutout(charger_height(), charger_diameter(), cable_plug_width(), bin_height()-4.75-phone_chamfer_height, cable_diameter(), cable_relief_length(), cable_relief_diameter());
+        
+        translate([0, 0, 0.1])
+        charger_cutout(
+            bin_height = bin_height() - phone_chamfer_height,
+            base_height = base_height(),
+            tray_length = tray_length(),
+            charger_height = charger_height(), 
+            charger_diameter = charger_diameter(), 
+            plug_width = cable_plug_width(), 
+            cable_diameter = cable_diameter(), 
+            cable_cutout_clearance = cable_cutout_clearance,
+            cable_management_clearance = cable_management_clearance,
+            cable_relief_length = cable_relief_length(), 
+            cable_relief_diameter = cable_relief_diameter()
+        );
     }
 }
