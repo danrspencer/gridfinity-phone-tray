@@ -31,7 +31,7 @@ custom_phone_corner_curve = 34.0;
 custom_phone_corner_smoothness = 6;
 
 /* [Phone Cutout] */
-// Clearance around Phone (per side) - can be used to accomdate a phone case (remember to leave some additional clearance)
+// Clearance around Phone (per side) - can be used to accomdate a phone case
 phone_clearance = 0.3;
 // A cutout area to allow for a camera bump on the back of the phone
 phone_cutout_height = 5;
@@ -73,7 +73,7 @@ custom_cable_relief_diameter = 5; //.1
 custom_cable_relief_length = 11; //.1
 
 function charger_diameter() = (charger_preset == 0 ? custom_charger_diameter : charger_presets()[0])  + 2*charger_cutout_clearance;
-function charger_height() = (charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1]) + charger_cutout_clearance;
+function charger_height() = charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1];
 
 function cable_diameter() = (charger_preset == 0 ? custom_cable_diameter : charger_presets()[2]);
 function cable_plug_width() = (charger_preset == 0 ? custom_cable_plug_width : charger_presets()[3]) + cable_plug_clearance;
