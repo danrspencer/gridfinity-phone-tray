@@ -1,4 +1,4 @@
-include <submodules/gridfinity-rebuilt-openscad/gridfinity-rebuilt-utility.scad>
+include <gridfinity-rebuilt-openscad/gridfinity-rebuilt-utility.scad>
 
 include <components/charger-cutout.scad>
 include <components/charger-tray.scad>
