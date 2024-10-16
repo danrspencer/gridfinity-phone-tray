@@ -26,4 +26,3 @@ module wedge(length, width, height) {
     ]);
 }
 
-// charger_tray(10, 50, 30, 30, 2);

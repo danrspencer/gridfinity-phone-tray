@@ -6,9 +6,17 @@ include <components/phone.scad>
 
 // ===== PHONE PARAMETERS ===== //
 
-/* [Phone Size] */
+/* [Enabled Models] */
+// The full charging tray
+charging_tray = true;
+
 // Just the phone cutout so the dimensions can be tested
-test_phone_cutout = false;
+test_phone_cutout = true;
+
+// Just the charger cutout so the dimensions can be tested
+test_charger_cutout = true;
+
+/* [Phone Size] */
 
 // Known phone dimensions. It is recommended to do a test print first if using untested or custom phone dimensions
 phone_preset = 1; // [0: Custom, 1: iPhone 16 Pro Max, 2: iPhone 16 Pro !UNTESTED!, 3:iPhone 16 Plus !UNTESTED!, 4:iPhone 16 !UNTESTED!]
@@ -47,8 +55,6 @@ function phone_corner_smoothness() = (phone_preset == 0 ? custom_phone_corner_sm
 
 // ===== CHARGER PARAMETERS ===== //
 /* [Charger Size] */
-// Just the charger cutout so the dimensions can be tested
-test_charger_cutout = false;
 // Known charger dimensions. It is recommended to do a test print first if using untested or custom charger dimensions
 charger_preset = 1; // [0: Custom, 1: Apple MagSafe Charger !UNTESTED!, 2: Belkin MagSafe Wireless Charger Pad !UNTESTED!, 3: Mous Mage MagSafe Charger]
 
@@ -73,7 +79,7 @@ custom_cable_relief_diameter = 5; //.1
 custom_cable_relief_length = 11; //.1
 
 function charger_diameter() = (charger_preset == 0 ? custom_charger_diameter : charger_presets()[0])  + 2*charger_cutout_clearance;
-function charger_height() = charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1];
+function charger_height() = charger_preset == 0 ? custom_charger_cutout_depth : charger_presets()[1] + charger_cutout_clearance;
 
 function cable_diameter() = (charger_preset == 0 ? custom_cable_diameter : charger_presets()[2]);
 function cable_plug_width() = (charger_preset == 0 ? custom_cable_plug_width : charger_presets()[3]) + cable_plug_clearance;
@@ -141,7 +147,7 @@ function bin_height() = gridz > 0 ? height(gridz, gridz_define, style_lip(), ena
 function base_height() = 4.75;
 function tray_length() = gridx * 42;
 
-// echo(bin_height());
+function y_shift_models() = charging_tray && (test_phone_cutout || test_charger_cutout) ? (.1+gridy/2)*42 : 0;
 
 // ===== MODULES ===== //
 
@@ -159,8 +165,9 @@ module cutout_chamfered_edge(length, width, height, curve, smoothness, angle) {
     phone_2d_shape(length, width, curve, smoothness);
 }
 
-color("#FFFFFF")
 if (test_phone_cutout) {
+    color("#FFFFFF")
+    translate([0, y_shift_models(), 0])
     difference() {
         translate([0, 0, phone_chamfer_height/2])
         cube([phone_length()+5, phone_width()+5, phone_chamfer_height-0.01], center=true);
@@ -171,9 +178,13 @@ if (test_phone_cutout) {
                             phone_corner_smoothness());
                             translate([0, 0, -phone_cutout_height]);
     }
-} else if (test_charger_cutout) {
+} 
+
+if (test_charger_cutout) {
     fake_bin_height = charger_height();
     fake_base_height = 1;
+    color("#FFFFFF")
+    translate([0, y_shift_models(), 0])
     difference() {
         translate([0, 0, (fake_bin_height + fake_base_height)/2])
         union() {
@@ -196,7 +207,11 @@ if (test_phone_cutout) {
             cable_relief_diameter = cable_relief_diameter()
         );
     }
-} else {
+} 
+
+if (charging_tray) {
+    color("#FFFFFF")
+    translate([0, -y_shift_models(), 0])
     difference() {
         union() {
             gridfinityInit(gridx, gridy, bin_height(), 0, sl=style_lip()) {
@@ -232,7 +247,8 @@ if (test_phone_cutout) {
             }
         }
         
-        translate([0, 0, 0.1])
+        // This has to be 0.3, even though it looks ok in OpenSCAD at 0.1 MakerWorld isn't happy with it
+        translate([0, 0, 0.3])
         charger_cutout(
             bin_height = bin_height() - phone_chamfer_height,
             base_height = base_height(),

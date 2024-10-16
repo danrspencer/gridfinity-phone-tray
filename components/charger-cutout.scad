@@ -1,5 +1,3 @@
-chamfer = 0.5;
-
 // Circular cutout for charger
 module charger_cutout(
     bin_height, // The total height of the bin, the top of the charger cutout will be flush with this
@@ -27,6 +25,7 @@ module charger_cutout(
     union() {
         cylinder(h = charger_height, d = charger_diameter, center = false, $fn=100);
         
+        chamfer = 0.5;
         // Add chamfer at the top of the circular cutout
         translate([0, 0, charger_height - chamfer])
         cylinder(h = chamfer, d1 = charger_diameter, d2 = charger_diameter + 1, center = false, $fn=100);  // 1mm high chamfer, expanding by 2mm
@@ -66,8 +65,3 @@ module charger_cutout(
     translate([0, -bottom_cutout_width/2, through_cut_z_offset])
     cube([tray_length/2, bottom_cutout_width, bottom_cutout_height]);
 }
-
-// module cable_management_cutout(base_height, diameter, length, z_offset) {
-
-    
-// }
